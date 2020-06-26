@@ -1,12 +1,17 @@
-// import sift from 'sift';
+const safe_regex = require('safe-regex');
 const sift = require('sift');
 
-const m = sift({v: {$where: '^a'}}, {
+const m = sift({v: {$regex: '^a'}}, {
     operations: {
-        $regex: (params, ownerQuery, options) =>
-            sift.createEqualsOperation(b => { throw '$regex uh oh' }, ownerQuery, options),
-        $where: (params, ownerQuery, options) => { throw '$where not supported'; },
+        $regex: (pattern, ownerQuery, options) => {
+            if (!safe_regex(pattern)) throw new Error('"$regex" pattern too complex (dcc)');
+            return sift.createEqualsOperation(new RegExp(pattern, ownerQuery.$options), ownerQuery, options);
+        },
+        $where: (params, ownerQuery, options) => {
+            throw new Error('"$where" condition not supported (dcc)');
+        },
     },
 });
 
 console.log(m({v: 'abc'}));
+console.log(m({v: 'tar'}));
