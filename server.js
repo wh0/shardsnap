@@ -3,6 +3,7 @@ const assert = require('assert');
 const eris = require('eris');
 const safe_regex = require('safe-regex');
 const sift = require('sift');
+const WebSocket = require('ws');
 
 const MATCH_OPTIONS = {
     operations: {
@@ -15,6 +16,8 @@ const MATCH_OPTIONS = {
         },
     },
 };
+const SLEEP_MS = 60 * 1000;
+const MAX_QUEUE = 1000;
 
 function jsonEquals(a, b) {
     return JSON.stringify(a) === JSON.stringify(b);
@@ -28,6 +31,7 @@ class Relay {
         this.intents = null;
         this.criteria = null;
         this.dst = null;
+        this.clientSecret = null;
 
         this.enabled = false;
         this.lastDisableReason = 'never initialized';
@@ -37,6 +41,11 @@ class Relay {
 
         this.queuedEvents = [];
         this.ws = null;
+        this.sleepTimeout = setTimeout(() => {
+            console.log('ws sleeping', this.alias);
+            if (!this.ws) return;
+            this.ws.close(1000);
+        }, SLEEP_MS).unref();
 
         this.preparedShards = new WeakSet();
         this.bot = new eris.Client();
@@ -111,14 +120,46 @@ class Relay {
     }
 
     sendPacket(packet) {
-        // todo: websocket
-        const dst = this.dst;
-        fetch(dst, {
-            method: 'POST',
-            body: packet,
-        }).catch((e) => {
-            console.error('sendPacket failed', this.alias, dst, e);
-        });
+        // wipe out existing web socket if it's no longer viable
+        if (this.ws) {
+            if (this.ws.readyState === WebSocket.CLOSING || this.ws.readyState === WebSocket.CLOSED) {
+                this.ws = null;
+            }
+        }
+        // open a new web socket if we don't have one
+        if (!this.ws) {
+            const dst = this.dst;
+            const ws = new WebSocket(dst, {auth: this.clientSecret});
+            ws.on('open', () => {
+                console.log('ws open', this.alias, dst);
+                assert.strictEqual(this.ws, ws);
+                const queuedEvents = this.queuedEvents;
+                this.queuedEvents = [];
+                for (const p of queuedEvents) {
+                    this.ws.send(JSON.stringify(p));
+                }
+                this.sleepTimeout.refresh();
+            });
+            ws.on('close', (code, reason) => {
+                console.log('ws close', this.alias, dst, code, reason);
+            });
+            ws.on('error', (err) => {
+                console.error('ws error', this.alias, dst, err);
+            });
+            this.ws = ws;
+            this.sleepTimeout.refresh();
+        }
+
+        if (this.ws.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify(packet));
+            this.sleepTimeout.refresh();
+        } else {
+            assert.strictEqual(this.ws.readyState, WebSocket.CONNECTING);
+            if (this.queuedEvents.length >= MAX_QUEUE) {
+                this.queuedEvents = [];
+            }
+            this.queuedEvents.push(packet);
+        }
     }
 
     enable() {
@@ -156,7 +197,7 @@ class Relay {
         this.bot.disconnect();
     }
 
-    applySettings(token, intents, criteria, dst) {
+    applySettings(token, intents, criteria, dst, clientSecret) {
         if (token !== this.token || intents !== this.intents) {
             // disconnect to open a new session with new intents and to purge Eris's snapshot of
             // the token
@@ -177,18 +218,35 @@ class Relay {
         }
         this.criteria = criteria;
 
-        // todo: remove ws
+        if (dst !== this.dst || clientSecret !== this.clientSecret) {
+            if (this.ws) {
+                this.ws.close();
+            }
+        }
         this.dst = dst;
+        this.clientSecret = clientSecret;
 
         // the current model is if you try to change your settings, you **always** get a chance to
         // connect. if this turns out to be abused, we should add some prevalidation
         this.enable();
+    }
+
+    cleanup() {
+        this.lastDisableReason = 'cleaning up';
+        this.disable();
+        clearTimeout(this.sleepTimeout);
+        if (this.ws) {
+            this.ws.close();
+        }
     }
 }
 
 // %%%
 const config = require('./config');
 const relay = new Relay(config.alias);
-relay.applySettings(config.token, config.intents, config.criteria, config.dst);
+relay.applySettings(config.token, config.intents, config.criteria, config.dst, config.clientSecret);
+
 const rs = require('repl').start();
 rs.context.relay = relay;
+
+relay.cleanup();
