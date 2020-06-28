@@ -255,6 +255,29 @@ const relays = new Map();
 const app = express();
 app.use(bodyParser.json());
 app.use(express.static('public'));
+app.use('/relays/:alias', (req, res, next) => {
+	const alias = '' + req.params.alias;
+	const authLine = '' + req.headers.authorization;
+
+	req.relay = relays.get(alias);
+	if (!req.relay) {
+		if (req.method === 'PUT') {
+			// allow put requests to create a new relay
+			next();
+			return;
+		}
+		res.status(404).end();
+		return;
+	}
+	const relayAuthLine = 'Basic ' + Buffer.from(relay.clientSecret).toString('base64');
+	// todo: constant-time compare this
+	if (authLine !== relayAuthLine) {
+		res.status(401).end();
+		return;
+	}
+
+	next();
+});
 app.get('/relays', (req, res) => {
 	const result = {};
 	for (const [alias, relay] of relays) {
@@ -279,61 +302,24 @@ app.put('/relays/:alias', (req, res) => {
 	const dst = '' + req.body.dst;
 	const newClientSecret = '' + req.body.clientSecret;
 
-	let relay = relays.get(alias);
-	if (relay) {
-		const authLine = '' + req.headers.authorization;
-		const clientSecret = Buffer.from(authLine.replace('Basic ', ''), 'base64').toString('utf8');
-		// todo: constant-time compare this
-		if (clientSecret !== relay.clientSecret) {
-			res.status(401).end();
-			return;
-		}
-	} else {
-		relay = new Relay(alias);
-		relays.set(alias, relay);
+	if (!req.relay) {
+		req.relay = new Relay(alias);
+		relays.set(alias, req.relay);
 	}
 
-	relay.applySettings(token, intents, criteria, dst, newClientSecret);
+	req.relay.applySettings(token, intents, criteria, dst, newClientSecret);
 
 	res.end();
 });
-app.post('/relays/disable', (req, res) => {
-	const alias = '' + req.params.alias;
-	const authLine = '' + req.headers.authorization;
-	const clientSecret = Buffer.from(authLine.replace('Basic ', ''), 'base64').toString('utf8');
-
-	let relay = relays.get(alias);
-	if (!relay) {
-		res.status(404).end();
-		return;
-	}
-	// todo: constant-time compare this
-	if (clientSecret !== relay.clientSecret) {
-		res.status(401).end();
-		return;
-	}
-
-	relay.disable();
+app.post('/relays/:alias/disable', (req, res) => {
+	req.relay.disable();
 
 	res.end();
 });
 app.delete('/relays/:alias', (req, res) => {
 	const alias = '' + req.params.alias;
-	const authLine = '' + req.headers.authorization;
-	const clientSecret = Buffer.from(authLine.replace('Basic ', ''), 'base64').toString('utf8');
 
-	let relay = relays.get(alias);
-	if (!relay) {
-		res.status(404).end();
-		return;
-	}
-	// todo: constant-time compare this
-	if (clientSecret !== relay.clientSecret) {
-		res.status(401).end();
-		return;
-	}
-
-	relay.cleanup();
+	req.relay.cleanup();
 	relays.delete(alias);
 
 	res.end();
