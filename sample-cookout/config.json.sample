@@ -1,0 +1,15 @@
+{
+	"alias": "sample_cookout",
+	"token": "xxx",
+	"intents": 4608,
+	"criteria": {
+		"t": "MESSAGE_CREATE",
+		"$or": [
+			{"d.guild_id": {"$exists": false}},
+			{"d.mentions": {"$elemMatch": {"id": "725161345627979808"}}},
+			{"d.content": {"$regex": "^cookout\\b"}}
+		]
+	},
+	"dst": "wss://xxx/dcc/v1/sample_cookout",
+	"clientSecret": "goodness:good"
+}

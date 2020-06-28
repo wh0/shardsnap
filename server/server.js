@@ -325,16 +325,5 @@ app.delete('/relays/:alias', (req, res) => {
 	res.end();
 });
 app.listen(process.env.PORT, () => {
-	console.log('listening');
+	console.log('listening', process.env.PORT);
 });
-
-// %%%
-// const config = require('../config');
-// const relay = new Relay(config.alias);
-// relay.applySettings(config.token, config.intents, config.criteria, config.dst, config.clientSecret);
-
-// const rs = require('repl').start();
-// rs.context.relay = relay;
-// rs.on('exit', () => {
-// 	relay.cleanup();
-// });

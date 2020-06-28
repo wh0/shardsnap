@@ -1,8 +1,9 @@
 const http = require('http');
 
+const dcc = require('../client');
 const express = require('express');
 
-const dcc = require('../client');
+const config = require('./config.json');
 
 const app = express();
 app.get('/zero', (req, res) => {
@@ -11,12 +12,16 @@ app.get('/zero', (req, res) => {
 
 const server = http.createServer(app);
 
-const config = require('../config.json');
-const dccc = new dcc.Client(config.alias, config.clientSecret, {server});
-dccc.on('dispatch', (packet) => {
+const client = new dcc.Client(config.alias, config.clientSecret, {server});
+client.on('dispatch', (packet) => {
 	console.log('received packet', JSON.stringify(packet));
 });
 
 server.listen(process.env.PORT, () => {
-	console.log('listening');
+	console.log('listening', process.env.PORT);
+	dcc.register(config).then(() => {
+		console.log('register ok');
+	}).catch((e) => {
+		console.error('register failed', e);
+	});
 });
