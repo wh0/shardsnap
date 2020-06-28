@@ -23,7 +23,7 @@ const CRITERIA = {
 		// mentions
 		{'d.mentions': {$elemMatch: {id: '725161345627979808'}}},
 		// prefix
-		{'d.content': {$regex: '^cookout\\b'}}
+		{'d.content': {$regex: '^cookout\\b'}},
 	],
 };
 
