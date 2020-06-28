@@ -269,7 +269,7 @@ app.use('/relays/:alias', (req, res, next) => {
 		res.status(404).end();
 		return;
 	}
-	const relayAuthLine = 'Basic ' + Buffer.from(relay.clientSecret).toString('base64');
+	const relayAuthLine = 'Basic ' + Buffer.from(req.relay.clientSecret).toString('base64');
 	// todo: constant-time compare this
 	if (authLine !== relayAuthLine) {
 		res.status(401).end();
