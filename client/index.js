@@ -17,7 +17,7 @@ class Client extends EventEmitter {
 				return;
 			}
 			socket.on('message', (data) => {
-				this.emit('packet', JSON.parse(data));
+				this.emit('dispatch', JSON.parse(data));
 			});
 		});
 	}
