@@ -39,7 +39,7 @@ class Client extends EventEmitter {
 	constructor(alias, clientSecret, wsOpts) {
 		super();
 		this.authLine = 'Basic ' + Buffer.from(clientSecret).toString('base64');
-		this.wss = new WebSocket.Server({path: '/dcc/v1/' + alias, ...wsOpts});
+		this.wss = new WebSocket.Server(wsOpts);
 		this.wss.on('connection', (socket, req) => {
 			if (req.headers.authorization !== this.authLine) {
 				socket.close(4001);

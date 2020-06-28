@@ -12,7 +12,10 @@ app.get('/zero', (req, res) => {
 
 const server = http.createServer(app);
 
-const client = new dcc.Client(config.alias, config.clientSecret, {server});
+const client = new dcc.Client(config.alias, config.clientSecret, {
+	path: '/dcc/v1/sample_cookout',
+	server,
+});
 client.on('dispatch', (packet) => {
 	console.log('received packet', JSON.stringify(packet));
 });
