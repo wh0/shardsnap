@@ -1,14 +1,16 @@
 const assert = require('assert');
 
+const bodyParser = require('body-parser');
 const eris = require('eris');
-const safe_regex = require('safe-regex');
+const express = require('express');
+const safeRegex = require('safe-regex');
 const sift = require('sift');
 const WebSocket = require('ws');
 
 const MATCH_OPTIONS = {
 	operations: {
 		$regex: (pattern, ownerQuery, options) => {
-			if (!safe_regex(pattern)) throw new Error('"$regex" pattern too complex (dcc)');
+			if (!safeRegex(pattern)) throw new Error('"$regex" pattern too complex (dcc)');
 			return sift.createEqualsOperation(new RegExp(pattern, ownerQuery.$options), ownerQuery, options);
 		},
 		$where: (params, ownerQuery, options) => {
@@ -35,12 +37,13 @@ class Relay {
 		this.clientSecret = null;
 
 		this.enabled = false;
-		this.lastDisableReason = 'never initialized';
+		this.lastDisableReason = '(not collected)';
 		this.connectRunning = false;
 
 		this.match = null;
 
 		this.queuedEvents = [];
+		this.lastWSError = '(not collected)';
 		this.ws = null;
 		this.sleepTimeout = setTimeout(() => {
 			console.log('ws sleeping', this.alias);
@@ -49,6 +52,7 @@ class Relay {
 		}, SLEEP_MS).unref();
 
 		this.preparedShards = new WeakSet();
+		this.lastBotError = '(not collected)';
 		this.bot = new eris.Client();
 		this.bot.on('debug', (message, id) => {
 			console.log('bot debug', this.alias, message, id);
@@ -57,7 +61,8 @@ class Relay {
 			console.warn('bot warn', this.alias, message, id);
 		});
 		this.bot.on('error', (err, id) => {
-			console.warn('bot error', this.alias, err, id);
+			console.error('bot error', this.alias, err, id);
+			this.lastBotError = 'error event: ' + err;
 		});
 		this.bot.on('connect', (id) => {
 			console.log('bot shard connect', this.alias, id);
@@ -146,6 +151,7 @@ class Relay {
 			});
 			ws.on('error', (err) => {
 				console.error('ws error', this.alias, dst, err);
+				this.lastWSError = 'error event: ' + err;
 			});
 			this.ws = ws;
 			this.sleepTimeout.refresh();
@@ -179,6 +185,7 @@ class Relay {
 			},
 			(e) => {
 				console.error('bot connect error', this.alias, e);
+				this.lastBotError = 'connect: ' + e;
 				this.connectRunning = false;
 				if (this.enabled) {
 					// Eris has already retried as appropriate, but failed. this isn't the
@@ -243,13 +250,105 @@ class Relay {
 	}
 }
 
-// %%%
-const config = require('../config');
-const relay = new Relay(config.alias);
-relay.applySettings(config.token, config.intents, config.criteria, config.dst, config.clientSecret);
+const relays = new Map();
 
-const rs = require('repl').start();
-rs.context.relay = relay;
-rs.on('exit', () => {
-	relay.cleanup();
+const app = express();
+app.use(bodyParser.json());
+app.use(express.static('public'));
+app.get('/relays', (req, res) => {
+	const result = {};
+	for (const [alias, relay] of relays) {
+		const shard = relay.bot.shards.get(0);
+		result[alias] = {
+			enabled: relay.enabled,
+			lastDisableReason: relay.lastDisableReason,
+			connectRunning: relay.connectRunning,
+			numQueuedEvents: relay.queuedEvents.length,
+			lastWSError: relay.lastWSError,
+			wsReadyState: relay.ws.readyState,
+			botShardStatus: shard ? shard.status : '(no shard)',
+		};
+	}
+	res.json(result);
 });
+app.put('/relays/:alias', (req, res) => {
+	const alias = '' + req.params.alias;
+	const token = '' + req.body.token;
+	const intents = +req.body.intents;
+	const criteria = req.body.criteria;
+	const dst = '' + req.body.dst;
+	const newClientSecret = '' + req.body.clientSecret;
+
+	let relay = relays.get(alias);
+	if (relay) {
+		const authLine = '' + req.headers.authorization;
+		const clientSecret = Buffer.from(authLine.replace('Basic ', ''), 'base64').toString('utf8');
+		// todo: constant-time compare this
+		if (clientSecret !== relay.clientSecret) {
+			res.status(401).end();
+			return;
+		}
+	} else {
+		relay = new Relay(alias);
+		relays.set(alias, relay);
+	}
+
+	relay.applySettings(token, intents, criteria, dst, newClientSecret);
+
+	res.end();
+});
+app.post('/relays/disable', (req, res) => {
+	const alias = '' + req.params.alias;
+	const authLine = '' + req.headers.authorization;
+	const clientSecret = Buffer.from(authLine.replace('Basic ', ''), 'base64').toString('utf8');
+
+	let relay = relays.get(alias);
+	if (!relay) {
+		res.status(404).end();
+		return;
+	}
+	// todo: constant-time compare this
+	if (clientSecret !== relay.clientSecret) {
+		res.status(401).end();
+		return;
+	}
+
+	relay.disable();
+
+	res.end();
+});
+app.delete('/relays/:alias', (req, res) => {
+	const alias = '' + req.params.alias;
+	const authLine = '' + req.headers.authorization;
+	const clientSecret = Buffer.from(authLine.replace('Basic ', ''), 'base64').toString('utf8');
+
+	let relay = relays.get(alias);
+	if (!relay) {
+		res.status(404).end();
+		return;
+	}
+	// todo: constant-time compare this
+	if (clientSecret !== relay.clientSecret) {
+		res.status(401).end();
+		return;
+	}
+
+	relay.cleanup();
+	relays.delete(alias);
+
+	res.end();
+});
+app.listen(process.env.PORT, () => {
+	console.log('listening');
+});
+
+// %%%
+// const config = require('../config');
+// const relay = new Relay(config.alias);
+// relay.applySettings(config.token, config.intents, config.criteria, config.dst, config.clientSecret);
+
+// const rs = require('repl').start();
+// rs.context.relay = relay;
+// rs.on('exit', () => {
+// 	relay.cleanup();
+// });
