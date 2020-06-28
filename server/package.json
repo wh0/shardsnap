@@ -1,8 +1,8 @@
 {
-  "dependencies": {
-    "eris": "^0.13.3",
-    "safe-regex": "^2.1.1",
-    "sift": "^13.1.10",
-    "ws": "^7.3.0"
-  }
+	"dependencies": {
+		"eris": "^0.13.3",
+		"safe-regex": "^2.1.1",
+		"sift": "^13.1.10",
+		"ws": "^7.3.0"
+	}
 }
