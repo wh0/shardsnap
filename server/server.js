@@ -244,7 +244,7 @@ class Relay {
 }
 
 // %%%
-const config = require('./config');
+const config = require('../config');
 const relay = new Relay(config.alias);
 relay.applySettings(config.token, config.intents, config.criteria, config.dst, config.clientSecret);
 
