@@ -18,6 +18,7 @@ function register({alias, token, intents, criteria, dst, clientSecret, requestMo
 	const body = Buffer.from(JSON.stringify({token, intents, criteria, dst, clientSecret}));
 	return new Promise((resolve, reject) => {
 		const req = requestModule.request(endpoint + '/relays/' + alias, {
+			method: 'PUT',
 			auth: clientSecret,
 			headers: {
 				'Content-Type': 'application/json',
