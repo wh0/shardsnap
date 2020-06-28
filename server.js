@@ -26,6 +26,7 @@ function jsonEquals(a, b) {
 class Relay {
 	constructor(alias) {
 		this.alias = alias;
+		console.log('relay construct', this.alias);
 
 		this.token = null;
 		this.intents = null;
@@ -68,7 +69,7 @@ class Relay {
 			assert.strictEqual(shard.wsEvent, eris.Shard.prototype.wsEvent);
 			shard.wsEvent = (packet) => this.interceptEvent(shard, packet);
 		});
-		this.bot.on('shardDisconnect', (err, id) => { // %%%
+		this.bot.on('shardDisconnect', (err, id) => {
 			console.log('bot shard disconnect', this.alias, err, id);
 		});
 		this.bot.on('ready', () => {
@@ -232,6 +233,7 @@ class Relay {
 	}
 
 	cleanup() {
+		console.log('relay cleanup', this.alias);
 		this.lastDisableReason = 'cleaning up';
 		this.disable();
 		clearTimeout(this.sleepTimeout);
@@ -248,5 +250,6 @@ relay.applySettings(config.token, config.intents, config.criteria, config.dst, c
 
 const rs = require('repl').start();
 rs.context.relay = relay;
-
-relay.cleanup();
+rs.on('exit', () => {
+	relay.cleanup();
+});
