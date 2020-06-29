@@ -5,6 +5,7 @@ const eris = require('eris');
 const express = require('express');
 const safeRegex = require('safe-regex');
 const sift = require('sift');
+const sqlite3 = require('sqlite3');
 const WebSocket = require('ws');
 
 const MATCH_OPTIONS = {
@@ -20,6 +21,18 @@ const MATCH_OPTIONS = {
 };
 const SLEEP_MS = 60 * 1000;
 const MAX_QUEUE = 1000;
+const STMT_RELAY_PUT = `
+	INSERT INTO relays
+		(alias, token, intents, criteria, dst, client_secret)
+	VALUES
+		(?, ?, ?, ?, ?, ?)
+	ON CONFLICT (alias) DO UPDATE SET
+		token=excluded.token,
+		intents=excluded.intents,
+		criteria=excluded.criteria,
+		dst=excluded.dst,
+		client_secret=excluded.client_secret
+`;
 
 function jsonEquals(a, b) {
 	return JSON.stringify(a) === JSON.stringify(b);
@@ -215,24 +228,24 @@ class Relay {
 			// snapshots the token in the same task as the connect promise would resolve, and
 			// `applySettings` _should_ be called from a separate task. the intents should be
 			// accessed even later, after the shards connect
+			this.token = token;
+			this.bot.token = token;
+			this.intents = intents;
+			this.bot.options.intents = intents;
 		}
-		this.token = token;
-		this.bot.token = token;
-		this.intents = intents;
-		this.bot.options.intents = intents;
 
 		if (!jsonEquals(criteria, this.criteria)) {
 			this.match = null;
+			this.criteria = criteria;
 		}
-		this.criteria = criteria;
 
 		if (dst !== this.dst || clientSecret !== this.clientSecret) {
 			if (this.ws) {
 				this.ws.close();
 			}
+			this.dst = dst;
+			this.clientSecret = clientSecret;
 		}
-		this.dst = dst;
-		this.clientSecret = clientSecret;
 
 		// the current model is if you try to change your settings, you **always** get a chance to
 		// connect. if this turns out to be abused, we should add some prevalidation
@@ -297,19 +310,28 @@ app.get('/relays', (req, res) => {
 app.put('/relays/:alias', (req, res) => {
 	const alias = '' + req.params.alias;
 	const token = '' + req.body.token;
-	const intents = +req.body.intents;
+	const intents = req.body.intents | 0;
 	const criteria = req.body.criteria;
 	const dst = '' + req.body.dst;
 	const newClientSecret = '' + req.body.clientSecret;
 
-	if (!req.relay) {
-		req.relay = new Relay(alias);
-		relays.set(alias, req.relay);
-	}
+	db.run(STMT_RELAY_PUT, [alias, token, intents, JSON.stringify(criteria), dst, newClientSecret], (err) => {
+		if (err) {
+			console.error('query put relay failed', alias, err);
+			res.status(500).end();
+			return;
+		}
+		console.log('save', alias);
 
-	req.relay.applySettings(token, intents, criteria, dst, newClientSecret);
+		if (!req.relay) {
+			req.relay = new Relay(alias);
+			relays.set(alias, req.relay);
+		}
 
-	res.end();
+		req.relay.applySettings(token, intents, criteria, dst, newClientSecret);
+
+		res.end();
+	});
 });
 app.post('/relays/:alias/disable', (req, res) => {
 	req.relay.disable();
@@ -324,6 +346,26 @@ app.delete('/relays/:alias', (req, res) => {
 
 	res.end();
 });
-app.listen(process.env.PORT, () => {
-	console.log('listening', process.env.PORT);
+
+const db = new sqlite3.Database('.data/omni.db');
+db.all(`SELECT * FROM relays`, (err, rows) => {
+	if (err) {
+		console.error('query all relays failed', err);
+		return;
+	}
+	for (const row of rows) {
+		console.log('load', row.alias);
+		const relay = new Relay(row.alias);
+		relays.set(row.alias, relay);
+		relay.applySettings(
+			row.token,
+			row.intents,
+			JSON.parse(row.criteria),
+			row.dst,
+			row.client_secret,
+		);
+	}
+	app.listen(process.env.PORT, () => {
+		console.log('listening', process.env.PORT);
+	});
 });
