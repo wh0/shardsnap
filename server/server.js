@@ -8,6 +8,8 @@ const sift = require('sift');
 const sqlite3 = require('sqlite3');
 const WebSocket = require('ws');
 
+const metadata = require('./package.json');
+
 const MAX_RELAYS = 50;
 const MATCH_OPTIONS = {
 	operations: {
@@ -153,7 +155,12 @@ class Relay {
 		// open a new web socket if we don't have one
 		if (!this.ws) {
 			const dst = this.dst;
-			const ws = new WebSocket(dst, {auth: this.clientSecret});
+			const ws = new WebSocket(dst, {
+				auth: this.clientSecret,
+				headers: {
+					'User-Agent': metadata.name + '/' + metadata.version,
+				},
+			});
 			ws.on('open', () => {
 				console.log('ws open', this.alias, dst);
 				assert.strictEqual(this.ws, ws);

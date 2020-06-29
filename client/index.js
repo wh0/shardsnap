@@ -3,6 +3,8 @@ const https = require('https');
 
 const WebSocket = require('ws');
 
+const metadata = require('./package.json');
+
 function register({alias, token, intents, criteria, dst, clientSecret, requestModule, endpoint}) {
 	if (!alias) throw new Error('missing alias');
 	if (!token) throw new Error('missing token');
@@ -23,6 +25,7 @@ function register({alias, token, intents, criteria, dst, clientSecret, requestMo
 			headers: {
 				'Content-Type': 'application/json',
 				'Content-Length': body.byteLength,
+				'User-Agent': metadata.name + '/' + metadata.version,
 			},
 		}, (res) => {
 			if (res.statusCode < 400) {
