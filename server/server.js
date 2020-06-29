@@ -302,7 +302,7 @@ app.get('/relays', (req, res) => {
 			connectRunning: relay.connectRunning,
 			numQueuedEvents: relay.queuedEvents.length,
 			lastWSError: relay.lastWSError,
-			wsReadyState: relay.ws.readyState,
+			wsReadyState: relay.ws ? relay.ws.readyState : '(no ws)',
 			botShardStatus: shard ? shard.status : '(no shard)',
 		};
 	}
