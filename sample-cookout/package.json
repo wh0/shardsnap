@@ -1,5 +1,6 @@
 {
 	"dependencies": {
+		"dcc-client": "link:../client",
 		"express": "^4.17.1"
 	}
 }

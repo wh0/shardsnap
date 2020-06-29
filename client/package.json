@@ -1,4 +1,6 @@
 {
+	"name": "dcc-client",
+	"version": "0.1.0",
 	"dependencies": {
 		"ws": "^7.3.0"
 	}

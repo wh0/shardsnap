@@ -1,9 +1,29 @@
 const http = require('http');
 
-const dcc = require('../client');
+const dcc = require('dcc-client');
 const express = require('express');
 
-const config = require('./config.json');
+const config = {
+	alias: 'sample_cookout',
+	token: process.env.DISCORD_TOKEN,
+	// GUILD_MESSAGES | DIRECT_MESSAGES
+	intents: 4608,
+	criteria: {
+		// corresponds to what we declared in the gateway, but further filters out messages like
+		// READY, CHANNEL_CREATE, and MESSAGE_UPDATE
+		t: 'MESSAGE_CREATE',
+		$or: [
+			// DMs
+			{'d.guild_id': {$exists: false}},
+			// mentions
+			{'d.mentions': {$elemMatch: {id: process.env.BOT_USER_ID}}},
+			// prefix
+			{'d.content': {$regex: '^cookout\\b'}},
+		],
+	},
+	dst: 'wss://' + process.env.PROJECT_DOMAIN + '.glitch.me/dcc/v1/sample_cookout',
+	clientSecret: process.env.DCC_SECRET,
+};
 
 const app = express();
 app.get('/zero', (req, res) => {
