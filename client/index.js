@@ -1,5 +1,5 @@
 const EventEmitter = require('events');
-const http = require('http');
+const https = require('https');
 
 const WebSocket = require('ws');
 
@@ -10,9 +10,9 @@ function register({alias, token, intents, criteria, dst, clientSecret, requestMo
 	if (!criteria) criteria = {t: 'MESSAGE_CREATE'};
 	if (!dst) throw new Error('missing dst');
 	if (!clientSecret) throw new Error('missing clientSecret');
-	// todo: switch in public deployment
-	if (!requestModule) requestModule = http;
-	if (!endpoint) endpoint = 'http://localhost:3000';
+	// todo: move public deployment elsewhere
+	if (!requestModule) requestModule = https;
+	if (!endpoint) endpoint = 'https://daffy-circular-chartreuse.glitch.me';
 
 	// todo: add a way to rotate clientSecret
 	const body = Buffer.from(JSON.stringify({token, intents, criteria, dst, clientSecret}));
