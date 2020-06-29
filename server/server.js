@@ -8,6 +8,7 @@ const sift = require('sift');
 const sqlite3 = require('sqlite3');
 const WebSocket = require('ws');
 
+const MAX_RELAYS = 50;
 const MATCH_OPTIONS = {
 	operations: {
 		$regex: (pattern, ownerQuery, options) => {
@@ -314,6 +315,11 @@ app.put('/relays/:alias', (req, res) => {
 	const criteria = req.body.criteria;
 	const dst = '' + req.body.dst;
 	const newClientSecret = '' + req.body.clientSecret;
+
+	if (!req.relay && MAX_RELAYS && relays.size >= MAX_RELAYS) {
+		res.status(503).end();
+		return;
+	}
 
 	db.run(STMT_RELAY_PUT, [alias, token, intents, JSON.stringify(criteria), dst, newClientSecret], (err) => {
 		if (err) {
