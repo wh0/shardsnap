@@ -38,6 +38,8 @@ function register({alias, token, intents, criteria, dst, clientSecret, requestMo
 class Client extends EventEmitter {
 	constructor(alias, clientSecret, wsOpts) {
 		super();
+		if (!alias) throw new Error('missing alias');
+		if (!clientSecret) throw new Error('missing clientSecret');
 		this.authLine = 'Basic ' + Buffer.from(clientSecret).toString('base64');
 		this.wss = new WebSocket.Server(wsOpts);
 		this.wss.on('connection', (socket, req) => {
