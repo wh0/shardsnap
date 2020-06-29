@@ -1,6 +1,9 @@
+const assert = require('assert');
+const fs = require('fs');
 const http = require('http');
 
 const dcc = require('dcc-client');
+const eris = require('eris');
 const express = require('express');
 
 const config = {
@@ -12,6 +15,8 @@ const config = {
 		// corresponds to what we declared in the gateway, but further filters out messages like
 		// READY, CHANNEL_CREATE, and MESSAGE_UPDATE
 		t: 'MESSAGE_CREATE',
+		// ignore messages from self and other bots
+		$not: {'d.author.bot': true},
 		$or: [
 			// DMs
 			{'d.guild_id': {$exists: false}},
@@ -25,12 +30,94 @@ const config = {
 	clientSecret: process.env.DCC_SECRET,
 };
 
+//
+// model
+//
+
+const assignments = new Map();
+
+function saveItem(name) {
+	const volunteer = assignments.get(name);
+	fs.writeFileSync('.data/' + name, volunteer);
+}
+
+function loadItem(name) {
+	let volunteer = null;
+	try {
+		volunteer = fs.readFileSync('.data/' + name, {encoding: 'utf8'});
+	} catch (e) {
+		if (e.code === 'ENOENT') {
+			// no one's bringing it. this is a valid state
+		} else {
+			throw e;
+		}
+	}
+	assignments.set(name, volunteer);
+}
+
+loadItem('plates');
+loadItem('hamburgers');
+loadItem('hot dogs');
+loadItem('buns');
+loadItem('drinks');
+
+//
+// web service
+//
+
 const app = express();
-app.get('/zero', (req, res) => {
-	res.json(0);
+app.get('/', (req, res) => {
+	let message = `We have the following covered:
+`;
+	for (const [item, volunteer] of assignments) {
+		const check = volunteer ? 'x' : ' ';
+		message += `[${check}] ${item}
+`;
+	}
+	res.end(message);
+});
+const server = http.createServer(app);
+
+//
+// bot
+//
+
+function logReject(p) {
+	p.catch((e) => {
+		console.error(e);
+	});
+}
+
+const bot = new eris.Client(config.token);
+bot.on('debug', (message, id) => {
+	console.log('bot debug', message, id);
+});
+bot.on('warn', (message, id) => {
+	console.warn('bot warn', message, id);
+});
+bot.on('error', (err, id) => {
+	console.error('bot error', err, id);
 });
 
-const server = http.createServer(app);
+// we'll be receiving events from DCC, but still briefly connect to the gateway. from the Discord
+// API reference:
+//
+// > Before using this endpoint [Create Message], you must connect to and identify with a gateway
+// > at least once.
+//
+// the "you" is not as broad as the whole bot. empirically, it's at least per-IP
+if (!fs.existsSync('/tmp/installation_blessed')) {
+	console.log('bot connect');
+	bot.once('ready', () => {
+		console.log('bot disconnect');
+		bot.disconnect();
+		fs.writeFileSync('/tmp/installation_blessed', 'yes');
+		console.log(bot); // %%%
+	});
+	logReject(bot.connect());
+} else {
+	console.log(bot); // %%%
+}
 
 const client = new dcc.Client(config.alias, config.clientSecret, {
 	path: '/dcc/v1/sample_cookout',
@@ -38,7 +125,35 @@ const client = new dcc.Client(config.alias, config.clientSecret, {
 });
 client.on('dispatch', (packet) => {
 	console.log('received packet', JSON.stringify(packet));
+	assert.strictEqual(packet.t, 'MESSAGE_CREATE');
+	assert.ok(!packet.d.author.bot);
+	{
+		const m = /\bhelp\b/i.exec(packet.d.content);
+		if (m) {
+			let message = `If we ever get through the you-know-what, let's have a cookout.
+
+**Commands:**
+cookout help
+cookout I'm bringing <item>
+cookout I can't bring <item>
+cookout who's bringing <item>
+
+**Items tracked:**`;
+			for (const [item, volunteer] of assignments) {
+				message += `
+${item}`
+			}
+			logReject(bot.createMessage(packet.d.channel_id, message));
+			return;
+		}
+	}
+	console.log('unmatched command');
+	logReject(bot.createMessage(packet.d.channel_id, 'Didn\'t understand that. Say "cookout help" for commands.'));
 });
+
+//
+// start
+//
 
 server.listen(process.env.PORT, () => {
 	console.log('listening', process.env.PORT);

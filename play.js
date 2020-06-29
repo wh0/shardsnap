@@ -17,6 +17,8 @@ const CRITERIA = {
 	// corresponds to what we declared in the gateway, but further filters out messages like
 	// READY, CHANNEL_CREATE, and MESSAGE_UPDATE
 	t: 'MESSAGE_CREATE',
+	// ignore messages from self and other bots
+	$not: {'d.author.bot': true},
 	$or: [
 		// DMs
 		{'d.guild_id': {$exists: false}},

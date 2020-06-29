@@ -9,7 +9,7 @@ function register({alias, token, intents, criteria, dst, clientSecret, requestMo
 	if (!alias) throw new Error('missing alias');
 	if (!token) throw new Error('missing token');
 	if (!intents) intents = 4608;
-	if (!criteria) criteria = {t: 'MESSAGE_CREATE'};
+	if (!criteria) criteria = {t: 'MESSAGE_CREATE', $not: {'d.author.bot': true}};
 	if (!dst) throw new Error('missing dst');
 	if (!clientSecret) throw new Error('missing clientSecret');
 	// todo: move public deployment elsewhere

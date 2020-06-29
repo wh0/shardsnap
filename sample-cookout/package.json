@@ -1,6 +1,7 @@
 {
 	"dependencies": {
 		"dcc-client": "link:../client",
+		"eris": "^0.13.3",
 		"express": "^4.17.1"
 	}
 }
