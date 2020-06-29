@@ -34,6 +34,10 @@ const STMT_RELAY_PUT = `
 		dst=excluded.dst,
 		client_secret=excluded.client_secret
 `;
+const STMT_RELAY_DELETE = `
+	DELETE FROM relays
+	WHERE alias=?
+`;
 
 function jsonEquals(a, b) {
 	return JSON.stringify(a) === JSON.stringify(b);
@@ -347,10 +351,19 @@ app.post('/relays/:alias/disable', (req, res) => {
 app.delete('/relays/:alias', (req, res) => {
 	const alias = '' + req.params.alias;
 
-	req.relay.cleanup();
-	relays.delete(alias);
+	db.run(STMT_RELAY_DELETE, [alias], (err) => {
+		if (err) {
+			console.error('query delete relay failed', alias, err);
+			res.status(500).end();
+			return;
+		}
+		console.log('delete', alias);
 
-	res.end();
+		req.relay.cleanup();
+		relays.delete(alias);
+
+		res.end();
+	});
 });
 
 const db = new sqlite3.Database('.data/omni.db');
