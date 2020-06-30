@@ -38,7 +38,19 @@ const assignments = new Map();
 
 function saveItem(name) {
 	const volunteer = assignments.get(name);
-	fs.writeFileSync('.data/' + name, volunteer);
+	if (!volunteer) {
+		try {
+			fs.unlinkSync('.data/' + name);
+		} catch (e) {
+			if (e.code === 'ENOENT') {
+				// no one was bringing it. this is okay
+			} else {
+				throw e;
+			}
+		}
+	} else {
+		fs.writeFileSync('.data/' + name, volunteer);
+	}
 }
 
 function loadItem(name) {
@@ -117,7 +129,7 @@ client.on('dispatch', (packet) => {
 
 **Commands:**
 cookout help
-cookout I'm bringing <item>
+cookout I'll bring <item>
 cookout I can't bring <item>
 cookout who's bringing <item>
 
@@ -130,8 +142,82 @@ ${item}`
 			return;
 		}
 	}
+	{
+		const m = /\bI'll bring ([\w\s]+)\b/i.exec(packet.d.content);
+		if (m) {
+			const [, item] = m;
+			const key = item.toLowerCase();
+			if (!assignments.has(key)) {
+				logReject(bot.createMessage(packet.d.channel_id, `We're not tracking ${item}. I think it sounds tasty though.`));
+				return;
+			}
+
+			const prevVolunteer = assignments.get(key);
+			if (prevVolunteer === packet.d.author.id) {
+				logReject(bot.createMessage(packet.d.channel_id, `We already have you signed up to bring ${key}. :smile:`));
+				return;
+			}
+
+			let message = `Yay, thanks! :smile:`;
+			if (prevVolunteer) {
+				message += ` <@${prevVolunteer}>, ${packet.d.author.username} will bring ${key} so you don't have to.`;
+			}
+
+			assignments.set(key, packet.d.author.id);
+			saveItem(key);
+			logReject(bot.createMessage(packet.d.channel_id, message));
+			return;
+		}
+	}
+	{
+		const m = /\bI can't bring ([\w\s]+)\b/i.exec(packet.d.content);
+		if (m) {
+			const [, item] = m;
+			const key = item.toLowerCase();
+			if (!assignments.has(key)) {
+				logReject(bot.createMessage(packet.d.channel_id, `That's okay, I think we'll be fine without ${item}.`));
+				return;
+			}
+
+			const prevVolunteer = assignments.get(key);
+			if (prevVolunteer !== packet.d.author.id) {
+				logReject(bot.createMessage(packet.d.channel_id, `No worries, we have <@${prevVolunteer}> bringing ${key}. :smile:`));
+				return;
+			}
+
+			assignments.set(key, null);
+			saveItem(key);
+			logReject(bot.createMessage(packet.d.channel_id, `Got it. Can someone else bring ${key}?`));
+
+			return;
+		}
+	}
+	{
+		const m = /\bwho's bringing ([\w\s]+)\b/i.exec(packet.d.content);
+		if (m) {
+			const [, item] = m;
+			const key = item.toLowerCase();
+			if (!assignments.has(key)) {
+				logReject(bot.createMessage(packet.d.channel_id, `Maybe nobody? I don't really understand ${item}. :thinking:`));
+				return;
+			}
+
+			let message;
+			const prevVolunteer = assignments.get(key);
+			if (!prevVolunteer) {
+				message = `Nobody is bringing ${key}! :scream:`;
+			} else if (prevVolunteer === packet.d.author.id) {
+				message = `_You're_ bringing ${key}, silly pants! :laughing:`;
+			} else {
+				message = `<@${prevVolunteer}> is bringing ${key}.`;
+			}
+			logReject(bot.createMessage(packet.d.channel_id, message));
+
+			return;
+		}
+	}
 	console.log('unmatched command');
-	logReject(bot.createMessage(packet.d.channel_id, 'Didn\'t understand that. Say "cookout help" for commands.'));
+	logReject(bot.createMessage(packet.d.channel_id, `You know, I only understand a few phrases. Say "cookout help" for commands.`));
 });
 
 //
