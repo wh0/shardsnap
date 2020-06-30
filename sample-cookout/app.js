@@ -88,7 +88,10 @@ function logReject(p) {
 	});
 }
 
-const bot = new eris.Client(config.token);
+// we're using Eris in this example. configure it not to connect to the gateway. we'll be receiving
+// events from dc-chartreuse in this setup. we won't have the gateway to tell us that this token is
+// a bot, so we need to add that `Bot ` prefix explicitly
+const bot = new eris.Client('Bot ' + config.token, {restMode: true});
 bot.on('debug', (message, id) => {
 	console.log('bot debug', message, id);
 });
@@ -98,26 +101,6 @@ bot.on('warn', (message, id) => {
 bot.on('error', (err, id) => {
 	console.error('bot error', err, id);
 });
-
-// we'll be receiving events from DCC, but still briefly connect to the gateway. from the Discord
-// API reference:
-//
-// > Before using this endpoint [Create Message], you must connect to and identify with a gateway
-// > at least once.
-//
-// the "you" is not as broad as the whole bot. empirically, it's at least per-IP
-if (!fs.existsSync('/tmp/installation_blessed')) {
-	console.log('bot connect');
-	bot.once('ready', () => {
-		console.log('bot disconnect');
-		bot.disconnect();
-		fs.writeFileSync('/tmp/installation_blessed', 'yes');
-		console.log(bot); // %%%
-	});
-	logReject(bot.connect());
-} else {
-	console.log(bot); // %%%
-}
 
 const client = new dcc.Client(config.alias, config.clientSecret, {
 	path: '/dcc/v1/sample_cookout',
