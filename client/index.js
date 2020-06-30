@@ -27,12 +27,17 @@ function register({alias, token, intents, criteria, dst, clientSecret, requestMo
 				'Content-Length': body.byteLength,
 				'User-Agent': metadata.name + '/' + metadata.version,
 			},
-		}, (res) => {
+		});
+		req.on('response', (res) => {
+			res.resume();
 			if (res.statusCode < 400) {
-				resolve(res);
+				resolve();
 			} else {
-				reject(res);
+				reject(new Error('response ' + res.statusCode + ' ' + res.statusMessage));
 			}
+		});
+		req.on('error', (err) => {
+			reject(err);
 		});
 		req.end(body);
 	});

@@ -160,6 +160,6 @@ server.listen(process.env.PORT, () => {
 	dcc.register(config).then(() => {
 		console.log('register ok');
 	}).catch((e) => {
-		console.error('register failed', e.statusCode, e.statusMessage);
+		console.error('register failed', e);
 	});
 });
