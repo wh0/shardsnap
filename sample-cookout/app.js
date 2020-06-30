@@ -9,8 +9,7 @@ const express = require('express');
 const config = {
 	alias: 'sample_cookout',
 	token: process.env.DISCORD_TOKEN,
-	// GUILD_MESSAGES | DIRECT_MESSAGES
-	intents: 4608,
+	intents: eris.Constants.Intents.guildMessages | eris.Constants.Intents.directMessages,
 	criteria: {
 		// corresponds to what we declared in the gateway, but further filters out messages like
 		// READY, CHANNEL_CREATE, and MESSAGE_UPDATE
@@ -29,6 +28,9 @@ const config = {
 	dst: 'wss://' + process.env.PROJECT_DOMAIN + '.glitch.me/dcc/v1/sample_cookout',
 	clientSecret: process.env.DCC_SECRET,
 };
+const webUrl = 'https://' + process.env.PROJECT_DOMAIN + '.glitch.me/';
+const sourceUrl = 'https://glitch.com/edit/#!/' + process.env.PROJECT_DOMAIN +
+	'?path=' + encodeURIComponent(__filename.replace(/^\/app\//, ''));
 
 //
 // model
@@ -43,7 +45,7 @@ function saveItem(name) {
 			fs.unlinkSync('.data/' + name);
 		} catch (e) {
 			if (e.code === 'ENOENT') {
-				// no one was bringing it. this is okay
+				// no one was bringing it. leave it that way
 			} else {
 				throw e;
 			}
@@ -80,12 +82,16 @@ loadItem('drinks');
 const app = express();
 app.get('/', (req, res) => {
 	let message = `We have the following covered:
+
 `;
 	for (const [item, volunteer] of assignments) {
 		const check = volunteer ? 'x' : ' ';
 		message += `[${check}] ${item}
 `;
 	}
+	message += `
+View bot source: ${sourceUrl}
+`;
 	res.end(message);
 });
 const server = http.createServer(app);
@@ -133,11 +139,14 @@ cookout I'll bring <item>
 cookout I can't bring <item>
 cookout who's bringing <item>
 
-**Items tracked:**`;
+**Items tracked:**
+`;
 			for (const [item, volunteer] of assignments) {
-				message += `
-${item}`
+				message += `${item}
+`
 			}
+			message += `
+Go to our website ${webUrl} to see what's already covered'.`
 			logReject(bot.createMessage(packet.d.channel_id, message));
 			return;
 		}
@@ -160,7 +169,7 @@ ${item}`
 
 			let message = `Yay, thanks! :smile:`;
 			if (prevVolunteer) {
-				message += ` <@${prevVolunteer}>, ${packet.d.author.username} will bring ${key} so you don't have to.`;
+				message += ` <@${prevVolunteer}>, <@${packet.d.author.id}> will bring ${key} so you don't have to.`;
 			}
 
 			assignments.set(key, packet.d.author.id);
