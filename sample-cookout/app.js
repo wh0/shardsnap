@@ -152,7 +152,7 @@ Go to our website ${webUrl} to see what's already covered.`
 		}
 	}
 	{
-		const m = /\bI'll bring ([\w\s]+)\b/i.exec(packet.d.content);
+		const m = /\bI(?:')?ll bring ([\w\s]+)\b/i.exec(packet.d.content);
 		if (m) {
 			const [, item] = m;
 			const key = item.toLowerCase();
@@ -179,7 +179,7 @@ Go to our website ${webUrl} to see what's already covered.`
 		}
 	}
 	{
-		const m = /\bI can't bring ([\w\s]+)\b/i.exec(packet.d.content);
+		const m = /\bI can(?:')?t bring ([\w\s]+)\b/i.exec(packet.d.content);
 		if (m) {
 			const [, item] = m;
 			const key = item.toLowerCase();
@@ -202,7 +202,7 @@ Go to our website ${webUrl} to see what's already covered.`
 		}
 	}
 	{
-		const m = /\bwho's bringing ([\w\s]+)\b/i.exec(packet.d.content);
+		const m = /\bwho(?:')?s bringing ([\w\s]+)\b/i.exec(packet.d.content);
 		if (m) {
 			const [, item] = m;
 			const key = item.toLowerCase();
