@@ -190,7 +190,13 @@ Go to our website ${webUrl} to see what's already covered.`
 
 			const prevVolunteer = assignments.get(key);
 			if (prevVolunteer !== packet.d.author.id) {
-				logReject(bot.createMessage(packet.d.channel_id, `No worries, we have <@${prevVolunteer}> bringing ${key}. :smile:`));
+				let message;
+				if (prevVolunteer) {
+					message = `No worries, we have <@${prevVolunteer}> bringing ${key}. :smile:`;
+				} else {
+					message = `Fine, the search continues for someone who can bring ${key}. :pleading_face:`;
+				}
+				logReject(bot.createMessage(packet.d.channel_id, message));
 				return;
 			}
 
