@@ -146,7 +146,7 @@ cookout who's bringing <item>
 `
 			}
 			message += `
-Go to our website ${webUrl} to see what's already covered'.`
+Go to our website ${webUrl} to see what's already covered.`
 			logReject(bot.createMessage(packet.d.channel_id, message));
 			return;
 		}
