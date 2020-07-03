@@ -1,6 +1,8 @@
 {
 	"name": "dcc-client",
 	"version": "0.1.0",
+	"homepage": "https://github.com/wh0/dc-chartreuse",
+	"license": "Apache-2.0",
 	"dependencies": {
 		"ws": "^7.3.0"
 	}
