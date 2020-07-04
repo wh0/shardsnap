@@ -1,3 +1,9 @@
-/sample-cookout/config.json
+# state
+/sample-cookout/.data
 /server/.data
+
+# wrappers to point Glitch at one of the components
+/package.json
+/package-lock.json
+
 node_modules/
