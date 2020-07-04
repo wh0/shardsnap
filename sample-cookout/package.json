@@ -1,7 +1,7 @@
 {
 	"license": "Apache-2.0",
 	"dependencies": {
-		"dcc-client": "link:../client",
+		"dcc-client": "file:../client",
 		"eris": "^0.13.3",
 		"express": "^4.17.1"
 	}
