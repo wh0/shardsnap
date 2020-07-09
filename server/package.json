@@ -3,7 +3,6 @@
 	"version": "0.1.0",
 	"license": "AGPL-3.0-or-later",
 	"dependencies": {
-		"body-parser": "^1.19.0",
 		"eris": "^0.13.3",
 		"express": "^4.17.1",
 		"safe-regex": "^2.1.1",

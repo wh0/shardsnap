@@ -1,6 +1,5 @@
 const assert = require('assert');
 
-const bodyParser = require('body-parser');
 const eris = require('eris');
 const express = require('express');
 const safeRegex = require('safe-regex');
@@ -279,7 +278,7 @@ const relays = new Map();
 const creatingRelays = new Set();
 
 const app = express();
-app.use(bodyParser.json());
+app.use(express.json());
 app.use(express.static('public'));
 app.use('/relays/:alias', (req, res, next) => {
 	const alias = '' + req.params.alias;
