@@ -276,6 +276,7 @@ class Relay {
 }
 
 const relays = new Map();
+const creatingRelays = new Set();
 
 const app = express();
 app.use(bodyParser.json());
@@ -332,14 +333,25 @@ app.put('/relays/:alias', (req, res) => {
 	const dst = '' + req.body.dst;
 	const newClientSecret = '' + req.body.clientSecret;
 
-	if (!req.relay && MAX_RELAYS && relays.size >= MAX_RELAYS) {
-		res.status(503).end();
+	if (creatingRelays.has(alias)) {
+		res.status(409).end();
 		return;
+	}
+
+	if (!req.relay) {
+		if (MAX_RELAYS && relays.size + creatingRelays.size >= MAX_RELAYS) {
+			res.status(503).end();
+			return;
+		}
+		creatingRelays.add(alias);
 	}
 
 	db.run(STMT_RELAY_PUT, [alias, token, intents, JSON.stringify(criteria), dst, newClientSecret], (err) => {
 		if (err) {
 			console.error('query put relay failed', alias, err);
+			if (!req.relay) {
+				creatingRelays.delete(alias);
+			}
 			res.status(500).end();
 			return;
 		}
@@ -348,6 +360,7 @@ app.put('/relays/:alias', (req, res) => {
 		if (!req.relay) {
 			req.relay = new Relay(alias);
 			relays.set(alias, req.relay);
+			creatingRelays.delete(alias);
 		}
 
 		req.relay.applySettings(token, intents, criteria, dst, newClientSecret);
