@@ -291,6 +291,11 @@ app.use('/relays/:alias', (req, res, next) => {
 			next();
 			return;
 		}
+		if (req.method === 'DELETE') {
+			// allow delete requests to succeed
+			next();
+			return;
+		}
 		res.status(404).end();
 		return;
 	}
@@ -357,6 +362,11 @@ app.post('/relays/:alias/disable', (req, res) => {
 });
 app.delete('/relays/:alias', (req, res) => {
 	const alias = '' + req.params.alias;
+
+	if (!req.relay) {
+		res.end();
+		return;
+	}
 
 	db.run(STMT_RELAY_DELETE, [alias], (err) => {
 		if (err) {
