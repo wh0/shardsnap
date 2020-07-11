@@ -11,7 +11,7 @@ const config = {
 	token: process.env.DISCORD_TOKEN,
 	intents: eris.Constants.Intents.guildMessages | eris.Constants.Intents.directMessages,
 	criteria: {
-		// corresponds to what we declared in the gateway, but further filters out messages like
+		// corresponds to what we declared in the intents, but further filters out messages like
 		// READY, CHANNEL_CREATE, and MESSAGE_UPDATE
 		t: 'MESSAGE_CREATE',
 		// ignore messages from self and other bots
