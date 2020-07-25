@@ -2,6 +2,9 @@
 /sample-cookout/.data
 /server/.data
 
+# variables
+/server/tests/test-vars.sh
+
 # wrappers to point Glitch at one of the components
 /package.json
 /package-lock.json
