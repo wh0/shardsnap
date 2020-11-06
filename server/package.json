@@ -3,11 +3,11 @@
 	"version": "0.1.1",
 	"license": "AGPL-3.0-or-later",
 	"dependencies": {
-		"eris": "^0.13.3",
+		"eris": "^0.14.0",
 		"express": "^4.17.1",
 		"safe-regex": "^2.1.1",
-		"sift": "^13.1.10",
+		"sift": "^13.4.0",
 		"sqlite3": "^4.2.0",
-		"ws": "^7.3.0"
+		"ws": "^7.3.1"
 	}
 }
