@@ -72,7 +72,7 @@ class Relay {
 
 		this.preparedShards = new WeakSet();
 		this.lastBotError = '(not collected)';
-		this.bot = new eris.Client();
+		this.bot = new eris.Client('');
 		this.bot.on('debug', (message, id) => {
 			console.log('bot debug', this.alias, message, id);
 		});
@@ -240,7 +240,8 @@ class Relay {
 			// `applySettings` _should_ be called from a separate task. the intents should be
 			// accessed even later, after the shards connect
 			this.token = token;
-			this.bot.token = token;
+			// todo: Eris is taking this private. we might be better off constructing a new bot
+			this.bot._token = token;
 			this.intents = intents;
 			this.bot.options.intents = intents;
 		}
