@@ -14,7 +14,7 @@ function register({alias, token, intents, criteria, dst, clientSecret, requestMo
 	if (!clientSecret) throw new Error('missing clientSecret');
 	// todo: move public deployment elsewhere
 	if (!requestModule) requestModule = https;
-	if (!endpoint) endpoint = 'https://daffy-circular-chartreuse.glitch.me';
+	if (!endpoint) endpoint = 'https://shardsnap.glitch.me';
 
 	// todo: add a way to rotate clientSecret
 	const body = Buffer.from(JSON.stringify({token, intents, criteria, dst, clientSecret}));

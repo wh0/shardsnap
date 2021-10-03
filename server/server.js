@@ -13,11 +13,11 @@ const MAX_RELAYS = 50;
 const MATCH_OPTIONS = {
 	operations: {
 		$regex: (pattern, ownerQuery, options) => {
-			if (!safeRegex(pattern)) throw new Error('"$regex" pattern too complex (dcc)');
+			if (!safeRegex(pattern)) throw new Error('"$regex" pattern too complex (shardsnap)');
 			return sift.createEqualsOperation(new RegExp(pattern, ownerQuery.$options), ownerQuery, options);
 		},
 		$where: (params, ownerQuery, options) => {
-			throw new Error('"$where" condition not supported (dcc)');
+			throw new Error('"$where" condition not supported (shardsnap)');
 		},
 	},
 };
@@ -88,7 +88,7 @@ class Relay {
 			const shard = this.bot.shards.get(id);
 			if (this.preparedShards.has(shard)) return;
 			this.preparedShards.add(shard);
-			console.log('dcc preparing shard', this.alias, id);
+			console.log('shardsnap preparing shard', this.alias, id);
 			// detect if a later version of Eris binds this method
 			assert.strictEqual(shard.wsEvent, eris.Shard.prototype.wsEvent);
 			shard.wsEvent = (packet) => this.interceptEvent(shard, packet);

@@ -1,7 +1,7 @@
 {
-	"name": "dcc-client",
+	"name": "shardsnap",
 	"version": "0.1.1",
-	"homepage": "https://github.com/wh0/dc-chartreuse",
+	"homepage": "https://github.com/wh0/shardsnap",
 	"license": "Apache-2.0",
 	"dependencies": {
 		"ws": "^7.4.6"

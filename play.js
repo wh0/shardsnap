@@ -4,11 +4,11 @@ const sift = require('sift');
 const MATCH_OPTIONS = {
 	operations: {
 		$regex: (pattern, ownerQuery, options) => {
-			if (!safe_regex(pattern)) throw new Error('"$regex" pattern too complex (dcc)');
+			if (!safe_regex(pattern)) throw new Error('"$regex" pattern too complex (shardsnap)');
 			return sift.createEqualsOperation(new RegExp(pattern, ownerQuery.$options), ownerQuery, options);
 		},
 		$where: (params, ownerQuery, options) => {
-			throw new Error('"$where" condition not supported (dcc)');
+			throw new Error('"$where" condition not supported (shardsnap)');
 		},
 	},
 };
