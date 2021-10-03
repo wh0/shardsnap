@@ -1,6 +1,6 @@
 # https://nodejs.org/en/docs/guides/nodejs-docker-webapp/
 FROM node:10-stretch
-WORKDIR /opt/dc-chartreuse-server
+WORKDIR /opt/shardsnap-server
 COPY package*.json ./
 RUN npm ci --only=production
 COPY . .

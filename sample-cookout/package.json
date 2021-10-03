@@ -1,7 +1,7 @@
 {
 	"license": "Apache-2.0",
 	"dependencies": {
-		"dcc-client": "file:../client",
+		"shardsnap": "file:../client",
 		"eris": "^0.14.0",
 		"express": "^4.17.1"
 	}
