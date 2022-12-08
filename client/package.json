@@ -4,6 +4,6 @@
 	"homepage": "https://github.com/wh0/shardsnap",
 	"license": "Apache-2.0",
 	"dependencies": {
-		"ws": "^7.4.6"
+		"ws": "^8.11.0"
 	}
 }
